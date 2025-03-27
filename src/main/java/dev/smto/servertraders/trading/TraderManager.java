@@ -9,6 +9,7 @@ import eu.pb4.sgui.api.gui.SimpleGui;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.ScreenHandlerType;
@@ -21,6 +22,8 @@ import net.minecraft.village.VillagerData;
 import dev.smto.servertraders.command.CommandManager;
 import dev.smto.servertraders.ServerTraders;
 import dev.smto.servertraders.util.CodecUtils;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -154,19 +157,22 @@ public class TraderManager {
         public void beforeOpen() {
             super.beforeOpen();
             for (var trader : TraderManager.TRADERS) {
-                if (!trader.hidden()) {
-                    this.addSlot(GuiElementBuilder.from(trader.trades().getFirst().sell())
-                            .setName((Text.literal(TraderManager.prettifyName(trader.identifier())).formatted(Formatting.GOLD).append(Text.literal(" - ").formatted(Formatting.GRAY)).append(Text.literal(trader.name()).formatted(Formatting.AQUA))))
-                            .setRarity(Rarity.COMMON)
-                            .hideDefaultTooltip()
-                            .setCount(1)
-                            .setCallback(() -> {
-                                this.close();
-                                TraderManager.openTraderMenuFor(this.player, trader);
-                            })
-                            .build()
-                    );
-                }
+                try {
+                    if (!trader.hidden()) {
+                        if (trader.trades().isEmpty()) continue;
+                        this.addSlot(GuiElementBuilder.from(trader.trades().getFirst().sell())
+                                .setName((Text.literal(TraderManager.prettifyName(trader.identifier())).formatted(Formatting.GOLD).append(Text.literal(" - ").formatted(Formatting.GRAY)).append(Text.literal(trader.name()).formatted(Formatting.AQUA))))
+                                .setRarity(Rarity.COMMON)
+                                .hideDefaultTooltip()
+                                .setCount(1)
+                                .setCallback(() -> {
+                                    this.close();
+                                    TraderManager.openTraderMenuFor(this.player, trader);
+                                })
+                                .build()
+                        );
+                    }
+                } catch (Throwable ignored) {}
             }
         }
 
@@ -204,62 +210,60 @@ public class TraderManager {
         }
     }
 
+    public static void placeTrader(World world, PlayerEntity player, @Nullable TraderDefinition trader) {
+        if (trader == null) return;
+        var villagerData = trader.villager();
+        var ent = new VillagerEntity(EntityType.VILLAGER, world);
+        world.spawnEntity(ent);
+
+        ent.setVillagerData(new VillagerData(villagerData.type(), villagerData.profession(), 5));
+        ent.setPosition(player.getPos());
+        ent.setHeadYaw(player.getHeadYaw());
+        ent.setPitch(player.getPitch());
+        ent.setAiDisabled(true);
+        ent.setNoGravity(true);
+        ent.setInvulnerable(true);
+        ent.setNoDrag(true);
+        ent.setPersistent();
+        ent.setSilent(true);
+        ent.setCustomName(Text.literal(trader.name()));
+        ent.setCustomNameVisible(true);
+        ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "=" + trader.identifier());
+        ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "Fallback=" + TraderManager.getTraders().indexOf(trader));
+
+        int random = world.getRandom().nextInt();
+        ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
+        try {
+            if (player.getServer() != null) CommandManager.CACHED_DISPATCHER.execute("tp @e[type=minecraft:villager,tag=" + TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random + "] " + ent.getX() + " " + ent.getY() + " " + ent.getZ() + " facing " + player.getX() + " " + player.getY()+1 + " " + player.getZ(), player.getServer().getCommandSource());
+        } catch (Throwable ignored) {}
+        ent.removeCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
+    }
+
     private static class TraderPlacingGui extends SimpleGui {
         private TraderPlacingGui(ScreenHandlerType<GenericContainerScreenHandler> type, ServerPlayerEntity player) {
             super(type, player, false);
         }
 
-        public void placeTrader(int sel) {
-            var t = TraderManager.getTraders().get(sel);
-            var villagerData = t.villager();
-
-            var ent = new VillagerEntity(EntityType.VILLAGER, this.player.getWorld());
-            this.player.getWorld().spawnEntity(ent);
-
-            ent.setVillagerData(new VillagerData(villagerData.type(), villagerData.profession(), 5));
-            //ent.setPosition(target.toCenterPos().offset(Direction.UP, 0.51));
-            ent.setPosition(this.player.getPos());
-            ent.setHeadYaw(this.player.getHeadYaw());
-            ent.setPitch(this.player.getPitch());
-            ent.setAiDisabled(true);
-            ent.setNoGravity(true);
-            ent.setInvulnerable(true);
-            ent.setNoDrag(true);
-            ent.setPersistent();
-            ent.setSilent(true);
-            ent.setCustomName(Text.literal(t.name()));
-            ent.setCustomNameVisible(true);
-            ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "=" + t.identifier());
-            ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "Fallback=" + sel);
-
-            int random = this.player.getWorld().getRandom().nextInt();
-            ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
-            try {
-                if (this.player.getServer() != null) CommandManager.CACHED_DISPATCHER.execute("tp @e[type=minecraft:villager,tag=" + TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random + "] " + ent.getX() + " " + ent.getY() + " " + ent.getZ() + " facing " + this.player.getX() + " " + this.player.getY()+1 + " " + this.player.getZ(), this.player.getServer().getCommandSource());
-            } catch (Throwable ignored) {}
-            ent.removeCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
-        }
-
         @Override
         public void beforeOpen() {
             super.beforeOpen();
-                for (int i = 0; i < TraderManager.getTraders().size(); i++) {
-                    try {
-                        var t = TraderManager.getTraders().get(i);
-                        int finalI = i;
-                        this.addSlot(GuiElementBuilder.from(t.trades().getFirst().sell())
-                                .setName(Text.literal("").append(Text.literal(TraderManager.prettifyName(t.identifier())).formatted(Formatting.GOLD)).append(Text.literal(" - ").formatted(Formatting.GRAY)).append(Text.literal(t.name()).formatted(Formatting.AQUA)))
-                                .setRarity(Rarity.COMMON)
-                                .hideDefaultTooltip()
-                                .setCount(1)
-                                .setCallback(() -> {
-                                    this.close();
-                                    this.placeTrader(finalI);
-                                })
-                                .build()
-                        );
-                    } catch (Throwable ignored) {}
-                }
+            for (TraderDefinition t : TraderManager.getTraders()) {
+                try {
+                    ItemStack icon = Items.BARRIER.getDefaultStack();
+                    if (!t.trades().isEmpty()) icon = t.trades().getFirst().sell();
+                    this.addSlot(GuiElementBuilder.from(icon)
+                            .setName(Text.literal("").append(Text.literal(TraderManager.prettifyName(t.identifier())).formatted(Formatting.GOLD)).append(Text.literal(" - ").formatted(Formatting.GRAY)).append(Text.literal(t.name()).formatted(Formatting.AQUA)))
+                            .setRarity(Rarity.COMMON)
+                            .hideDefaultTooltip()
+                            .setCount(1)
+                            .setCallback(() -> {
+                                this.close();
+                                TraderManager.placeTrader(this.player.getWorld(), this.player, t);
+                            })
+                            .build()
+                    );
+                } catch (Throwable ignored) {}
+            }
         }
 
         @Override

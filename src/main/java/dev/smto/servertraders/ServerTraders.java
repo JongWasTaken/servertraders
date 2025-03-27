@@ -21,7 +21,7 @@ public class ServerTraders implements ModInitializer {
     @Override
     public void onInitialize() {
         ServerTraders.CONFIG_MANAGER.read();
-        CommandRegistrationCallback.EVENT.register((dispatcher, x, environment) -> CommandManager.register(dispatcher));
+        CommandRegistrationCallback.EVENT.register((dispatcher, reg, environment) -> CommandManager.register(dispatcher, reg));
         TraderManager.reloadFromDisk();
         ServerTraders.LOGGER.info("ServerTraders v{} started!", ServerTraders.VERSION);
         ServerWorldEvents.LOAD.register((x, y) -> TraderManager.reloadFromDisk());

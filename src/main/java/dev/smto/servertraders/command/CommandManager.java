@@ -4,14 +4,18 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import dev.smto.servertraders.trading.*;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.resource.language.I18n;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.command.argument.ItemStackArgumentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
@@ -21,10 +25,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.village.VillagerProfession;
 import net.minecraft.village.VillagerType;
 import dev.smto.servertraders.ServerTraders;
-import dev.smto.servertraders.trading.SimpleOffer;
-import dev.smto.servertraders.trading.TraderBuilder;
-import dev.smto.servertraders.trading.TraderManager;
-import dev.smto.servertraders.trading.TraderVillagerDefinition;
 
 import java.util.List;
 
@@ -35,7 +35,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public class CommandManager {
     public static CommandDispatcher<ServerCommandSource> CACHED_DISPATCHER = new CommandDispatcher<ServerCommandSource>();
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess commandRegistryAccess) {
         CommandManager.CACHED_DISPATCHER = dispatcher;
         dispatcher.register(literal("servertraders")
             .then(literal("reload")
@@ -78,7 +78,13 @@ public class CommandManager {
                     .executes(context -> {
                         TraderManager.openTraderPlacingMenuFor(context.getSource().getPlayer());
                         return 1;
-                    })
+                    }).then(argument("identifier", string()).executes(context -> {
+                        if (context.getSource().getPlayer() == null) return 1;
+                        var id = getString(context, "identifier");
+                        TraderManager.placeTrader(context.getSource().getWorld(), context.getSource().getPlayer(), TraderManager.getTraders().stream().filter((t) -> t.identifier().equals(id)).findFirst().orElse(null));
+                        //context.getSource().sendFeedback(() -> Text.translatable("command.ssu.config.set").append(Text.literal(key)).append(Text.literal(" -> ").append(Text.literal(value))), false);
+                        return 0;
+                    }).suggests((commandContext, suggestionsBuilder) -> CommandSource.suggestMatching(TraderManager.getTraders().stream().map(TraderDefinition::identifier).toList(), suggestionsBuilder)))
             )
             .then(literal("builder")
                     .requires(source -> Permissions.require(CommandManager.getPermission("builder")).test(source) || CommandManager.validatePermissionFallback(source))
@@ -99,21 +105,21 @@ public class CommandManager {
                             .executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"buy\", \"buyCount\", \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
-                            }).then(argument("buy", IdentifierArgumentType.identifier()).suggests((c, b) -> CommandSource.suggestIdentifiers(Registries.ITEM.getIds(), b)).executes(context -> {
+                            }).then(argument("buy", ItemStackArgumentType.itemStack(commandRegistryAccess)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"buyCount\", \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
                             }).then(argument("buyCount", IntegerArgumentType.integer(0, 64)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
-                            }).then(argument("sell", IdentifierArgumentType.identifier()).suggests((c, b) -> CommandSource.suggestIdentifiers(Registries.ITEM.getIds(), b)).executes(context -> {
+                            }).then(argument("sell", ItemStackArgumentType.itemStack(commandRegistryAccess)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Argument \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
                             }).then(argument("sellCount", IntegerArgumentType.integer(0, 64)).executes(context -> {
-                                Item buyItem = Registries.ITEM.get(IdentifierArgumentType.getIdentifier(context, "buy"));
+                                ItemStack buyItem = ItemStackArgumentType.getItemStackArgument(context, "buy").createStack(1, false);
                                 int buyCount = IntegerArgumentType.getInteger(context, "buyCount");
-                                Item sellItem = Registries.ITEM.get(IdentifierArgumentType.getIdentifier(context, "sell"));
+                                ItemStack sellItem = ItemStackArgumentType.getItemStackArgument(context, "sell").createStack(1, false);
                                 int sellCount = IntegerArgumentType.getInteger(context, "sellCount");
-                                if (buyItem.equals(Items.AIR) || sellItem.equals(Items.AIR)) {
+                                if (buyItem.isOf(Items.AIR) || sellItem.isOf(Items.AIR)) {
                                     context.getSource().sendFeedback(() -> Text.literal("One or more items are invalid.").formatted(Formatting.RED), false);
                                     return 1;
                                 }
@@ -121,7 +127,7 @@ public class CommandManager {
                                     context.getSource().sendFeedback(() -> Text.literal("One or more items cannot have the specified item count.").formatted(Formatting.RED), false);
                                     return 1;
                                 }
-                                TraderBuilder.getBuilderFor(context.getSource().getPlayer()).addSimpleOffer(buyItem.getDefaultStack().copyWithCount(buyCount), sellItem.getDefaultStack().copyWithCount(sellCount));
+                                TraderBuilder.getBuilderFor(context.getSource().getPlayer()).addSimpleOffer(buyItem.copyWithCount(buyCount), sellItem.copyWithCount(sellCount));
                                 context.getSource().sendFeedback(() -> Text.literal("Offer added: ").formatted(Formatting.DARK_GREEN).append(Text.literal( + buyCount + "x " + getItemName(buyItem) + " -> " + sellCount + "x " + getItemName(sellItem))), false);
                                 return 0;
                             })))
@@ -131,29 +137,29 @@ public class CommandManager {
                             .executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"buy1\", \"buy1Count\", \"buy2\", \"buy2Count\", \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
-                            }).then(argument("buy1", IdentifierArgumentType.identifier()).suggests((c, b) -> CommandSource.suggestIdentifiers(Registries.ITEM.getIds(), b)).executes(context -> {
+                            }).then(argument("buy1", ItemStackArgumentType.itemStack(commandRegistryAccess)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"buy1Count\", \"buy2\", \"buy2Count\", \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
                             }).then(argument("buy1Count", IntegerArgumentType.integer(0, 64)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"buy2\", \"buy2Count\", \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
-                            }).then(argument("buy2", IdentifierArgumentType.identifier()).suggests((c, b) -> CommandSource.suggestIdentifiers(Registries.ITEM.getIds(), b)).executes(context -> {
+                            }).then(argument("buy2", ItemStackArgumentType.itemStack(commandRegistryAccess)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"buy2Count\", \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
                             }).then(argument("buy2Count", IntegerArgumentType.integer(0, 64)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Arguments \"sell\", \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
-                            }).then(argument("sell", IdentifierArgumentType.identifier()).suggests((c, b) -> CommandSource.suggestIdentifiers(Registries.ITEM.getIds(), b)).executes(context -> {
+                            }).then(argument("sell", ItemStackArgumentType.itemStack(commandRegistryAccess)).executes(context -> {
                                 context.getSource().sendFeedback(() -> Text.literal("Argument \"sellCount\" missing!").formatted(Formatting.RED), false);
                                 return 0;
                             }).then(argument("sellCount", IntegerArgumentType.integer(0, 64)).executes(context -> {
-                                Item buy1Item = Registries.ITEM.get(IdentifierArgumentType.getIdentifier(context, "buy1"));
+                                ItemStack buy1Item = ItemStackArgumentType.getItemStackArgument(context, "buy1").createStack(1, false);
                                 int buy1Count = IntegerArgumentType.getInteger(context, "buy1Count");
-                                Item buy2Item = Registries.ITEM.get(IdentifierArgumentType.getIdentifier(context, "buy2"));
+                                ItemStack buy2Item = ItemStackArgumentType.getItemStackArgument(context, "buy2").createStack(1, false);
                                 int buy2Count = IntegerArgumentType.getInteger(context, "buy2Count");
-                                Item sellItem = Registries.ITEM.get(IdentifierArgumentType.getIdentifier(context, "sell"));
+                                ItemStack sellItem = ItemStackArgumentType.getItemStackArgument(context, "sell").createStack(1, false);
                                 int sellCount = IntegerArgumentType.getInteger(context, "sellCount");
-                                if (buy1Item.equals(Items.AIR) || buy2Item.equals(Items.AIR) || sellItem.equals(Items.AIR)) {
+                                if (buy1Item.isOf(Items.AIR) || buy2Item.isOf(Items.AIR) || sellItem.isOf(Items.AIR)) {
                                     context.getSource().sendFeedback(() -> Text.literal("One or more items are invalid.").formatted(Formatting.RED), false);
                                     return 1;
                                 }
@@ -161,7 +167,7 @@ public class CommandManager {
                                     context.getSource().sendFeedback(() -> Text.literal("One or more items cannot have the specified item count.").formatted(Formatting.RED), false);
                                     return 1;
                                 }
-                                TraderBuilder.getBuilderFor(context.getSource().getPlayer()).addFullOffer(buy1Item.getDefaultStack().copyWithCount(buy1Count), buy2Item.getDefaultStack().copyWithCount(buy2Count), sellItem.getDefaultStack().copyWithCount(sellCount));
+                                TraderBuilder.getBuilderFor(context.getSource().getPlayer()).addFullOffer(buy1Item.copyWithCount(buy1Count), buy2Item.copyWithCount(buy2Count), sellItem.copyWithCount(sellCount));
                                 context.getSource().sendFeedback(() -> Text.literal("Offer added: ").formatted(Formatting.DARK_GREEN).append(Text.literal( + buy1Count + "x " + getItemName(buy1Item) + " + " + buy2Count + "x " + getItemName(buy2Item) + " -> " + sellCount + "x " + getItemName(sellItem))), false);
                                 return 0;
                             })))
@@ -170,15 +176,15 @@ public class CommandManager {
                             .requires(source -> Permissions.require(CommandManager.getPermission("builder")).test(source) || CommandManager.validatePermissionFallback(source))
                             .executes(context -> {
                                 SimpleOffer offer = TraderBuilder.getBuilderFor(context.getSource().getPlayer()).removeLastOffer();
-                                Item sellItem = offer.sell().getItem();
+                                ItemStack sellItem = offer.sell();
                                 int sellCount = offer.sell().getCount();
-                                Item buy1Item = offer.buy().getItem();
+                                ItemStack buy1Item = offer.buy();
                                 int buy1Count = offer.buy().getCount();
                                 if (offer.isSimple()) {
                                     context.getSource().sendFeedback(() -> Text.literal("Offer removed: ").formatted(Formatting.DARK_GREEN).append(Text.literal( + buy1Count + "x " + getItemName(buy1Item) + " -> " + sellCount + "x " + getItemName(sellItem))), false);
                                     return 0;
                                 }
-                                Item buy2Item = offer.buy2().getItem();
+                                ItemStack buy2Item = offer.buy2();
                                 int buy2Count = offer.buy2().getCount();
                                 context.getSource().sendFeedback(() -> Text.literal("Offer removed: ").formatted(Formatting.DARK_GREEN).append(Text.literal( + buy1Count + "x " + getItemName(buy1Item) + " + " + buy2Count + "x " + getItemName(buy2Item) + " -> " + sellCount + "x " + getItemName(sellItem))), false);
                                 return 0;
@@ -304,10 +310,11 @@ public class CommandManager {
         return false;
     }
 
-    private static String getItemName(Item item) {
+    private static String getItemName(ItemStack stack) {
+        if (true) return stack.getOrDefault(DataComponentTypes.CUSTOM_NAME, stack.getItemName()).getString();
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
-            return I18n.translate(item.asItem().getTranslationKey());
+            return I18n.translate(stack.getItem().getTranslationKey());
         }
-        return Registries.ITEM.getId(item).getPath();
+        return Registries.ITEM.getId(stack.getItem()).getPath();
     }
 }
