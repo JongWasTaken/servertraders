@@ -26,7 +26,7 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    include(modImplementation("eu.pb4:sgui:1.7.2+1.21.2"))
+    include(modImplementation("eu.pb4:sgui:1.8.2+1.21.4"))
     include(modImplementation('me.lucko:fabric-permissions-api:0.3.1'))
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     include(implementation "dev.smto:simpleconfig:1.1.0")
