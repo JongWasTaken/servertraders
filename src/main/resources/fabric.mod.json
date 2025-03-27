@@ -5,6 +5,7 @@
   "name": "ServerTraders",
   "description": "Adds server-controlled traders, which read their trades from config files and can update on the fly.",
   "authors": ["JongWasTaken"],
+  "icon": "icon.png",
   "contact": {},
   "license": "MIT",
   "entrypoints": {
@@ -18,7 +19,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": "${minecraft_version}",
+    "minecraft": "~${minecraft_version}",
     "fabric-permissions-api-v0": "*"
   }
 }
