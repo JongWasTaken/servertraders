@@ -50,13 +50,13 @@ public class CommandManager {
             .then(literal("config")
                     .requires(source -> source.hasPermissionLevel(2))
                     .executes(context -> {
-                        context.getSource().sendFeedback(() -> Text.translatable("command.ssu.config.no_argument"), false);
+                        context.getSource().sendFeedback(() -> Text.literal("Missing arguments!"), false);
                         return 0;
                     })
                     .then(argument("key", string()).executes(context -> {
                                 var key = getString(context, "key");
                                 var value = ServerTraders.CONFIG_MANAGER.toMap().getOrDefault(key, "[key does not exist]");
-                                context.getSource().sendFeedback(() -> Text.translatable("command.ssu.config.get").append(Text.literal(key)).append(Text.literal(" -> ").append(Text.literal(value))), false);
+                                context.getSource().sendFeedback(() -> Text.literal("Current config: ").append(Text.literal(key)).append(Text.literal(" -> ").append(Text.literal(value))), false);
                                 return 0;
                             }).suggests((commandContext, suggestionsBuilder) -> CommandSource.suggestMatching(ServerTraders.CONFIG_MANAGER.getKeys(), suggestionsBuilder))
                             .then(argument("value", string()).executes(context -> {
@@ -64,11 +64,11 @@ public class CommandManager {
                                         var value = getString(context, "value");
                                         if (ServerTraders.CONFIG_MANAGER.trySet(key, value)) {
                                             ServerTraders.CONFIG_MANAGER.write();
-                                            context.getSource().sendFeedback(() -> Text.translatable("command.ssu.config.set").append(Text.literal(key)).append(Text.literal(" -> ").append(Text.literal(value))), false);
+                                            context.getSource().sendFeedback(() -> Text.literal("Config modified: ").append(Text.literal(key)).append(Text.literal(" -> ").append(Text.literal(value))), false);
                                             return 0;
                                         }
                                         else
-                                            context.getSource().sendFeedback(() -> Text.translatable("command.ssu.config.error").formatted(Formatting.RED), false);
+                                            context.getSource().sendFeedback(() -> Text.literal("An error occurred while setting the given value. Is the type valid?").formatted(Formatting.RED), false);
                                         return 1;
                                     }).suggests((commandContext, suggestionsBuilder) -> CommandSource.suggestMatching(List.of(ServerTraders.CONFIG_MANAGER.toMap().getOrDefault(commandContext.getArgument("key", String.class), "")), suggestionsBuilder))
                             ))
@@ -82,7 +82,6 @@ public class CommandManager {
                         if (context.getSource().getPlayer() == null) return 1;
                         var id = getString(context, "identifier");
                         TraderManager.placeTrader(context.getSource().getWorld(), context.getSource().getPlayer(), TraderManager.getTraders().stream().filter((t) -> t.identifier().equals(id)).findFirst().orElse(null));
-                        //context.getSource().sendFeedback(() -> Text.translatable("command.ssu.config.set").append(Text.literal(key)).append(Text.literal(" -> ").append(Text.literal(value))), false);
                         return 0;
                     }).suggests((commandContext, suggestionsBuilder) -> CommandSource.suggestMatching(TraderManager.getTraders().stream().map(TraderDefinition::identifier).toList(), suggestionsBuilder)))
             )
