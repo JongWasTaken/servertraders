@@ -11,6 +11,7 @@ import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -123,7 +124,7 @@ public class TraderManager {
 
     public static void updateVillager(VillagerEntity villager, TraderDefinition data) {
         villager.setCustomName(Text.literal(data.name()));
-        villager.setVillagerData(new VillagerData(data.villager().type(), data.villager().profession(), 5));
+        villager.setVillagerData(data.villager().toVanilla());
     }
 
     public static void openMasterMenuFor(ServerPlayerEntity player) {
@@ -216,7 +217,7 @@ public class TraderManager {
         var ent = new VillagerEntity(EntityType.VILLAGER, world);
         world.spawnEntity(ent);
 
-        ent.setVillagerData(new VillagerData(villagerData.type(), villagerData.profession(), 5));
+        ent.setVillagerData(villagerData.toVanilla());
         ent.setPosition(player.getPos());
         ent.setHeadYaw(player.getHeadYaw());
         ent.setPitch(player.getPitch());
