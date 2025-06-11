@@ -19,16 +19,16 @@ public record SimpleOffer(ItemStack buy, ItemStack buy2, ItemStack sell) {
         return new SimpleOffer(buy, ItemStack.EMPTY, sell);
     }
     public TradeOffer toVanilla() {
-        var vBuy = new TradedItem(buy.getItem(), buy.getCount());
+        var vBuy = new TradedItem(this.buy.getItem(), this.buy.getCount());
         Optional<TradedItem> vBuy2 = Optional.empty();
-        if (!buy2.isEmpty()) {
-            vBuy2 = Optional.of(new TradedItem(buy2.getItem(), buy2.getCount()));
+        if (!this.buy2.isEmpty()) {
+            vBuy2 = Optional.of(new TradedItem(this.buy2.getItem(), this.buy2.getCount()));
         }
         return new TradeOffer(
                 vBuy, vBuy2, this.sell, 0, Integer.MAX_VALUE, 0, 1.0f, 0
         );
     }
     public boolean isSimple() {
-        return buy2.isEmpty();
+        return this.buy2.isEmpty();
     }
 }
