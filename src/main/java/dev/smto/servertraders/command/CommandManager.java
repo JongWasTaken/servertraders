@@ -11,8 +11,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.resource.language.I18n;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.ItemStackArgumentType;
+import net.minecraft.command.permission.Permission;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -27,6 +29,7 @@ import net.minecraft.village.VillagerType;
 import dev.smto.servertraders.ServerTraders;
 
 import java.util.List;
+import java.util.Map;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.string;
@@ -48,7 +51,7 @@ public class CommandManager {
                     })
             )
             .then(literal("config")
-                    .requires(source -> source.hasPermissionLevel(2))
+                    .requires(source -> source.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS))
                     .executes(context -> {
                         context.getSource().sendFeedback(() -> Text.literal("Missing arguments!"), false);
                         return 0;
@@ -302,9 +305,16 @@ public class CommandManager {
         return ServerTraders.MOD_ID + ".command." + permission;
     }
 
+    public static final Map<Integer, Permission> LEGACY_PERMISSION_LOOKUP = Map.of(
+            1, DefaultPermissions.MODERATORS,
+            2, DefaultPermissions.GAMEMASTERS,
+            3, DefaultPermissions.ADMINS,
+            4, DefaultPermissions.OWNERS
+    );
+
     private static boolean validatePermissionFallback(ServerCommandSource source) {
         if (ServerTraders.Config.enablePermissionFallback) {
-            return source.hasPermissionLevel(ServerTraders.Config.fallbackPermissionLevel);
+            return source.getPermissions().hasPermission(CommandManager.LEGACY_PERMISSION_LOOKUP.get(ServerTraders.Config.fallbackPermissionLevel));
         }
         return false;
     }

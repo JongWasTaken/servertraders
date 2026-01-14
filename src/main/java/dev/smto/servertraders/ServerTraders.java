@@ -28,31 +28,24 @@ public class ServerTraders implements ModInitializer {
     }
 
     public static class Config {
-        @ConfigAnnotations.Holds(type = Boolean.class)
-        @ConfigAnnotations.Comment(comment = "The message displayed to a player when a server-managed trader is invalid. (applying changes requires server restart)")
+        @ConfigAnnotations.Comment(comment = "Whether the shop command is enabled. (applying changes requires server restart)")
         public static Boolean enableShopCommand = true;
 
-        @ConfigAnnotations.Holds(type = String.class)
         @ConfigAnnotations.Comment(comment = "The command used to open the master menu, e.g. \"shop\" for \"/shop\". (applying changes requires server restart)")
         public static String shopCommand = "shop";
 
-        @ConfigAnnotations.Holds(type = Boolean.class)
         @ConfigAnnotations.Comment(comment = "If true, players with the vanilla permission level set below can bypass required LuckPerms(or other) permissions.")
         public static boolean enablePermissionFallback = true;
 
-        @ConfigAnnotations.Holds(type = Integer.class)
         @ConfigAnnotations.Comment(comment = "The vanilla permission level required to bypass LuckPerms(or other) permission requirements.")
         public static int fallbackPermissionLevel = 4;
 
-        @ConfigAnnotations.Holds(type = String.class)
         @ConfigAnnotations.Comment(comment = "The title of the master shop menu.")
         public static String shopMenuTitleText = "Server Shops";
 
-        @ConfigAnnotations.Holds(type = String.class)
         @ConfigAnnotations.Comment(comment = "The title of the trader placing menu.")
         public static String shopTraderPlacingTitleText = "Shop Selection";
 
-        @ConfigAnnotations.Holds(type = String.class)
         @ConfigAnnotations.Comment(comment = "The message displayed to a player when a server-managed trader is invalid.")
         public static String invalidTraderText = "This server-managed trader contains invalid data. Please contact a server moderator.";
     }

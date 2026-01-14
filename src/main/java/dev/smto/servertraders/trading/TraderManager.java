@@ -218,7 +218,7 @@ public class TraderManager {
         world.spawnEntity(ent);
 
         ent.setVillagerData(villagerData.toVanilla());
-        ent.setPosition(player.getPos());
+        ent.setPosition(player.getEntityPos());
         ent.setHeadYaw(player.getHeadYaw());
         ent.setPitch(player.getPitch());
         ent.setAiDisabled(true);
@@ -235,7 +235,7 @@ public class TraderManager {
         int random = world.getRandom().nextInt();
         ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
         try {
-            if (player.getServer() != null) CommandManager.CACHED_DISPATCHER.execute("tp @e[type=minecraft:villager,tag=" + TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random + "] " + ent.getX() + " " + ent.getY() + " " + ent.getZ() + " facing " + player.getX() + " " + player.getY()+1 + " " + player.getZ(), player.getServer().getCommandSource());
+            if (player.getEntityWorld().getServer() != null) CommandManager.CACHED_DISPATCHER.execute("tp @e[type=minecraft:villager,tag=" + TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random + "] " + ent.getX() + " " + ent.getY() + " " + ent.getZ() + " facing " + player.getX() + " " + player.getY()+1 + " " + player.getZ(), player.getEntityWorld().getServer().getCommandSource());
         } catch (Throwable ignored) {}
         ent.removeCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
     }
@@ -259,7 +259,7 @@ public class TraderManager {
                             .setCount(1)
                             .setCallback(() -> {
                                 this.close();
-                                TraderManager.placeTrader(this.player.getWorld(), this.player, t);
+                                TraderManager.placeTrader(this.player.getEntityWorld(), this.player, t);
                             })
                             .build()
                     );

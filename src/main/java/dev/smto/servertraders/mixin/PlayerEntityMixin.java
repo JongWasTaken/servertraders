@@ -23,7 +23,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
     @Inject(method = "interact(Lnet/minecraft/entity/Entity;Lnet/minecraft/util/Hand;)Lnet/minecraft/util/ActionResult;", at = @At("HEAD"), cancellable = true)
     public void interact(Entity entity, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-        if (!entity.getWorld().isClient) {
+        if (!entity.getEntityWorld().isClient()) {
             var player = ((PlayerEntity)(Object)this);
             if (!player.isSpectator() ) {
                 if (entity instanceof VillagerEntity v) {
