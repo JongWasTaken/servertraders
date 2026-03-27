@@ -6,24 +6,9 @@ import com.google.gson.JsonParser;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.MerchantGui;
 import eu.pb4.sgui.api.gui.SimpleGui;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Rarity;
-import net.minecraft.village.TradeOffer;
-import net.minecraft.village.VillagerData;
 import dev.smto.servertraders.command.CommandManager;
 import dev.smto.servertraders.ServerTraders;
 import dev.smto.servertraders.util.CodecUtils;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -33,6 +18,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.level.Level;
 
 public class TraderManager {
     private static final String COMMANDTAG_KEY = "servertradersReference";
@@ -66,17 +64,17 @@ public class TraderManager {
             ServerTraders.LOGGER.error("Failed to load traders from disk!");
         }
         if (TraderManager.TRADERS.size() <= 9) {
-            MasterMenu.type = ScreenHandlerType.GENERIC_9X1;
+            MasterMenu.type = MenuType.GENERIC_9x1;
         } else if (TraderManager.TRADERS.size() <= 18) {
-            MasterMenu.type = ScreenHandlerType.GENERIC_9X2;
+            MasterMenu.type = MenuType.GENERIC_9x2;
         } else if (TraderManager.TRADERS.size() <= 27) {
-            MasterMenu.type = ScreenHandlerType.GENERIC_9X3;
+            MasterMenu.type = MenuType.GENERIC_9x3;
         } else if (TraderManager.TRADERS.size() <= 36) {
-            MasterMenu.type = ScreenHandlerType.GENERIC_9X4;
+            MasterMenu.type = MenuType.GENERIC_9x4;
         } else if (TraderManager.TRADERS.size() <= 45) {
-            MasterMenu.type = ScreenHandlerType.GENERIC_9X5;
+            MasterMenu.type = MenuType.GENERIC_9x5;
         } else {
-            MasterMenu.type = ScreenHandlerType.GENERIC_9X6;
+            MasterMenu.type = MenuType.GENERIC_9x6;
         }
 
         if (TraderManager.TRADERS.size() > 54) {
@@ -85,9 +83,9 @@ public class TraderManager {
 
         if (TraderManager.TRADERS.isEmpty()) {
             var t = new TraderDefinition("Example Trader", "example_trader", false, TraderVillagerDefinition.DEFAULT, List.of(
-                    SimpleOffer.simple(Items.EMERALD.getDefaultStack().copyWithCount(1), Items.DIRT.getDefaultStack().copyWithCount(64)),
-                    SimpleOffer.simple(Items.EMERALD.getDefaultStack().copyWithCount(2), Items.COBBLESTONE.getDefaultStack().copyWithCount(64)),
-                    SimpleOffer.simple(Items.EMERALD.getDefaultStack().copyWithCount(4), Items.OAK_LOG.getDefaultStack().copyWithCount(64))
+                    SimpleOffer.simple(Items.EMERALD.getDefaultInstance().copyWithCount(1), Items.DIRT.getDefaultInstance().copyWithCount(64)),
+                    SimpleOffer.simple(Items.EMERALD.getDefaultInstance().copyWithCount(2), Items.COBBLESTONE.getDefaultInstance().copyWithCount(64)),
+                    SimpleOffer.simple(Items.EMERALD.getDefaultInstance().copyWithCount(4), Items.OAK_LOG.getDefaultInstance().copyWithCount(64))
             ));
             if (TraderManager.acceptNewTraderDefinition(t, "example_trader")) {
                 ServerTraders.LOGGER.info("Created example trader!");
@@ -107,50 +105,50 @@ public class TraderManager {
         return true;
     }
 
-    public static boolean checkInteractedVillager(PlayerEntity player, VillagerEntity villager) {
-        for (String commandTag : villager.getCommandTags()) {
+    public static boolean checkInteractedVillager(Player player, Villager villager) {
+        for (String commandTag : villager.entityTags()) {
             if (commandTag.contains(TraderManager.COMMANDTAG_KEY) && !commandTag.contains("Fallback")) {
                 var tr = TraderManager.getTraderByName(commandTag.replaceAll(TraderManager.COMMANDTAG_KEY + "=", ""));
                 if (tr != null) {
                     try {
                         TraderManager.updateVillager(villager, tr);
-                        TraderManager.openTraderMenuFor((ServerPlayerEntity) player, tr);
+                        TraderManager.openTraderMenuFor((ServerPlayer) player, tr);
                     } catch (Throwable ignored) {}
-                } else player.sendMessage(Text.literal(ServerTraders.Config.invalidTraderText).formatted(Formatting.DARK_RED), false);
+                } else player.sendSystemMessage(Component.literal(ServerTraders.Config.invalidTraderText).withStyle(ChatFormatting.DARK_RED));
                 return true;
             }
         }
         return false;
     }
 
-    public static void updateVillager(VillagerEntity villager, TraderDefinition data) {
-        villager.setCustomName(Text.literal(data.name()));
+    public static void updateVillager(Villager villager, TraderDefinition data) {
+        villager.setCustomName(Component.literal(data.name()));
         villager.setVillagerData(data.villager().toVanilla());
     }
 
-    public static void openMasterMenuFor(ServerPlayerEntity player) {
+    public static void openMasterMenuFor(ServerPlayer player) {
         new MasterMenu(player).open();
     }
 
-    private static BiConsumer<ServerPlayerEntity, TraderDefinition> traderMenuFunc = (ServerPlayerEntity player, TraderDefinition trades) -> {
+    private static BiConsumer<ServerPlayer, TraderDefinition> traderMenuFunc = (ServerPlayer player, TraderDefinition trades) -> {
         new TraderMenu(player, trades).open();
     };
 
-    public static void setCustomShopScreen(BiConsumer<ServerPlayerEntity, TraderDefinition> func) {
+    public static void setCustomShopScreen(BiConsumer<ServerPlayer, TraderDefinition> func) {
         TraderManager.traderMenuFunc = func;
     }
 
     public static void restoreDefaultShopScreen() {
-        TraderManager.traderMenuFunc = (ServerPlayerEntity player, TraderDefinition trades) -> {
+        TraderManager.traderMenuFunc = (ServerPlayer player, TraderDefinition trades) -> {
             new TraderMenu(player, trades).open();
         };
     }
 
-    public static void openTraderMenuFor(ServerPlayerEntity player, TraderDefinition trades) {
+    public static void openTraderMenuFor(ServerPlayer player, TraderDefinition trades) {
         TraderManager.traderMenuFunc.accept(player, trades);
     }
 
-    public static void openTraderPlacingMenuFor(ServerPlayerEntity player) {
+    public static void openTraderPlacingMenuFor(ServerPlayer player) {
         new TraderPlacingGui(MasterMenu.type, player).open();
     }
 
@@ -165,8 +163,8 @@ public class TraderManager {
     }
 
     private static class MasterMenu extends SimpleGui {
-        public static ScreenHandlerType<GenericContainerScreenHandler> type = ScreenHandlerType.GENERIC_9X1;
-        public MasterMenu(ServerPlayerEntity player) {
+        public static MenuType<ChestMenu> type = MenuType.GENERIC_9x1;
+        public MasterMenu(ServerPlayer player) {
             super(MasterMenu.type, player, false);
         }
         @Override
@@ -177,7 +175,7 @@ public class TraderManager {
                     if (!trader.hidden()) {
                         if (trader.trades().isEmpty()) continue;
                         this.addSlot(GuiElementBuilder.from(trader.trades().getFirst().sell())
-                                .setName((Text.literal(TraderManager.prettifyName(trader.identifier())).formatted(Formatting.GOLD).append(Text.literal(" - ").formatted(Formatting.GRAY)).append(Text.literal(trader.name()).formatted(Formatting.AQUA))))
+                                .setName((Component.literal(TraderManager.prettifyName(trader.identifier())).withStyle(ChatFormatting.GOLD).append(Component.literal(" - ").withStyle(ChatFormatting.GRAY)).append(Component.literal(trader.name()).withStyle(ChatFormatting.AQUA))))
                                 .setRarity(Rarity.COMMON)
                                 .hideDefaultTooltip()
                                 .setCount(1)
@@ -193,14 +191,14 @@ public class TraderManager {
         }
 
         @Override
-        public Text getTitle() {
-            return Text.literal(ServerTraders.Config.shopMenuTitleText);
+        public Component getTitle() {
+            return Component.literal(ServerTraders.Config.shopMenuTitleText);
         }
     }
 
     private static class TraderMenu extends MerchantGui {
         private final TraderDefinition trades;
-        public TraderMenu(ServerPlayerEntity player, TraderDefinition trades) {
+        public TraderMenu(ServerPlayer player, TraderDefinition trades) {
             super(player, false);
             this.trades = trades;
         }
@@ -214,49 +212,49 @@ public class TraderManager {
         }
 
         @Override
-        public Text getTitle() {
-            return Text.literal(this.trades.name());
+        public Component getTitle() {
+            return Component.literal(this.trades.name());
         }
 
         @Override
-        public void onSelectTrade(TradeOffer offer) {
-            this.merchantInventory.markDirty();
-            this.player.getInventory().markDirty();
+        public void onSelectTrade(MerchantOffer offer) {
+            this.merchantInventory.setChanged();
+            this.player.getInventory().setChanged();
             this.sendUpdate();
         }
     }
 
-    public static void placeTrader(World world, PlayerEntity player, @Nullable TraderDefinition trader) {
+    public static void placeTrader(Level world, Player player, @Nullable TraderDefinition trader) {
         if (trader == null) return;
         var villagerData = trader.villager();
-        var ent = new VillagerEntity(EntityType.VILLAGER, world);
-        world.spawnEntity(ent);
+        var ent = new Villager(EntityType.VILLAGER, world);
+        world.addFreshEntity(ent);
 
         ent.setVillagerData(villagerData.toVanilla());
-        ent.setPosition(player.getEntityPos());
-        ent.setHeadYaw(player.getHeadYaw());
-        ent.setPitch(player.getPitch());
-        ent.setAiDisabled(true);
+        ent.setPos(player.position());
+        ent.setYHeadRot(player.getYHeadRot());
+        ent.setXRot(player.getXRot());
+        ent.setNoAi(true);
         ent.setNoGravity(true);
         ent.setInvulnerable(true);
-        ent.setNoDrag(true);
-        ent.setPersistent();
+        ent.setDiscardFriction(true);
+        ent.setPersistenceRequired();
         ent.setSilent(true);
-        ent.setCustomName(Text.literal(trader.name()));
+        ent.setCustomName(Component.literal(trader.name()));
         ent.setCustomNameVisible(true);
-        ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "=" + trader.identifier());
-        ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "Fallback=" + TraderManager.getTraders().indexOf(trader));
+        ent.addTag(TraderManager.COMMANDTAG_KEY + "=" + trader.identifier());
+        ent.addTag(TraderManager.COMMANDTAG_KEY + "Fallback=" + TraderManager.getTraders().indexOf(trader));
 
         int random = world.getRandom().nextInt();
-        ent.addCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
+        ent.addTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
         try {
-            if (player.getEntityWorld().getServer() != null) CommandManager.CACHED_DISPATCHER.execute("tp @e[type=minecraft:villager,tag=" + TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random + "] " + ent.getX() + " " + ent.getY() + " " + ent.getZ() + " facing " + player.getX() + " " + player.getY()+1 + " " + player.getZ(), player.getEntityWorld().getServer().getCommandSource());
+            if (player.level().getServer() != null) CommandManager.CACHED_DISPATCHER.execute("tp @e[type=minecraft:villager,tag=" + TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random + "] " + ent.getX() + " " + ent.getY() + " " + ent.getZ() + " facing " + player.getX() + " " + player.getY()+1 + " " + player.getZ(), player.level().getServer().createCommandSourceStack());
         } catch (Throwable ignored) {}
-        ent.removeCommandTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
+        ent.removeTag(TraderManager.COMMANDTAG_KEY + "FreshlyPlaced=" + random);
     }
 
     private static class TraderPlacingGui extends SimpleGui {
-        private TraderPlacingGui(ScreenHandlerType<GenericContainerScreenHandler> type, ServerPlayerEntity player) {
+        private TraderPlacingGui(MenuType<ChestMenu> type, ServerPlayer player) {
             super(type, player, false);
         }
 
@@ -265,16 +263,16 @@ public class TraderManager {
             super.beforeOpen();
             for (TraderDefinition t : TraderManager.getTraders()) {
                 try {
-                    ItemStack icon = Items.BARRIER.getDefaultStack();
+                    ItemStack icon = Items.BARRIER.getDefaultInstance();
                     if (!t.trades().isEmpty()) icon = t.trades().getFirst().sell();
                     this.addSlot(GuiElementBuilder.from(icon)
-                            .setName(Text.literal("").append(Text.literal(TraderManager.prettifyName(t.identifier())).formatted(Formatting.GOLD)).append(Text.literal(" - ").formatted(Formatting.GRAY)).append(Text.literal(t.name()).formatted(Formatting.AQUA)))
+                            .setName(Component.literal("").append(Component.literal(TraderManager.prettifyName(t.identifier())).withStyle(ChatFormatting.GOLD)).append(Component.literal(" - ").withStyle(ChatFormatting.GRAY)).append(Component.literal(t.name()).withStyle(ChatFormatting.AQUA)))
                             .setRarity(Rarity.COMMON)
                             .hideDefaultTooltip()
                             .setCount(1)
                             .setCallback(() -> {
                                 this.close();
-                                TraderManager.placeTrader(this.player.getEntityWorld(), this.player, t);
+                                TraderManager.placeTrader(this.player.level(), this.player, t);
                             })
                             .build()
                     );
@@ -283,8 +281,8 @@ public class TraderManager {
         }
 
         @Override
-        public Text getTitle() {
-            return Text.literal(ServerTraders.Config.shopTraderPlacingTitleText);
+        public Component getTitle() {
+            return Component.literal(ServerTraders.Config.shopTraderPlacingTitleText);
         }
     }
 }

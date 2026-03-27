@@ -1,34 +1,35 @@
 package dev.smto.servertraders.mixin;
 
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.world.World;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import dev.smto.servertraders.trading.TraderManager;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 
-@Mixin(PlayerEntity.class)
+@Mixin(Player.class)
 public abstract class PlayerEntityMixin extends LivingEntity {
-    protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
+    protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, Level world) {
         super(entityType, world);
     }
 
-    @Inject(method = "interact(Lnet/minecraft/entity/Entity;Lnet/minecraft/util/Hand;)Lnet/minecraft/util/ActionResult;", at = @At("HEAD"), cancellable = true)
-    public void interact(Entity entity, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-        if (!entity.getEntityWorld().isClient()) {
-            var player = ((PlayerEntity)(Object)this);
+    @Inject(method = "interactOn", at = @At("HEAD"), cancellable = true)
+    public void interact(Entity entity, InteractionHand hand, Vec3 location, CallbackInfoReturnable<InteractionResult> cir) {
+        if (!entity.level().isClientSide()) {
+            var player = ((Player)(Object)this);
             if (!player.isSpectator() ) {
-                if (entity instanceof VillagerEntity v) {
+                if (entity instanceof Villager v) {
                     if (TraderManager.checkInteractedVillager(player, v)) {
-                        cir.setReturnValue(ActionResult.SUCCESS_SERVER);
+                        cir.setReturnValue(InteractionResult.SUCCESS_SERVER);
                         cir.cancel();
                     }
                 }

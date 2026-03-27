@@ -2,11 +2,10 @@ package dev.smto.servertraders.trading;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.item.ItemStack;
-import net.minecraft.village.TradeOffer;
-import net.minecraft.village.TradedItem;
-
 import java.util.Optional;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
 
 public record SimpleOffer(ItemStack buy, ItemStack buy2, ItemStack sell) {
     public static Codec<SimpleOffer> CODEC = RecordCodecBuilder.create(
@@ -18,13 +17,13 @@ public record SimpleOffer(ItemStack buy, ItemStack buy2, ItemStack sell) {
     public static SimpleOffer simple(ItemStack buy, ItemStack sell) {
         return new SimpleOffer(buy, ItemStack.EMPTY, sell);
     }
-    public TradeOffer toVanilla() {
-        var vBuy = new TradedItem(this.buy.getItem(), this.buy.getCount());
-        Optional<TradedItem> vBuy2 = Optional.empty();
+    public MerchantOffer toVanilla() {
+        var vBuy = new ItemCost(this.buy.getItem(), this.buy.getCount());
+        Optional<ItemCost> vBuy2 = Optional.empty();
         if (!this.buy2.isEmpty()) {
-            vBuy2 = Optional.of(new TradedItem(this.buy2.getItem(), this.buy2.getCount()));
+            vBuy2 = Optional.of(new ItemCost(this.buy2.getItem(), this.buy2.getCount()));
         }
-        return new TradeOffer(
+        return new MerchantOffer(
                 vBuy, vBuy2, this.sell, 0, Integer.MAX_VALUE, 0, 1.0f, 0
         );
     }

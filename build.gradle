@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.14-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.15-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -24,11 +24,10 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    include(modImplementation("eu.pb4:sgui:1.12.0+1.21.11"))
-    include(modImplementation('me.lucko:fabric-permissions-api:0.5.0'))
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    include(implementation("eu.pb4:sgui:2.0.0-beta.2+26.1"))
+    include(implementation('me.lucko:fabric-permissions-api:0.7.0'))
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     include(implementation "dev.smto:simpleconfig:2.4.3")
 }
 
@@ -45,7 +44,7 @@ processResources {
     }
 }
 
-def targetJavaVersion = 21
+def targetJavaVersion = 25
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
