@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 public class TraderManager {
     private static final String COMMANDTAG_KEY = "servertradersReference";
@@ -131,8 +132,22 @@ public class TraderManager {
         new MasterMenu(player).open();
     }
 
-    public static void openTraderMenuFor(ServerPlayerEntity player, TraderDefinition trades) {
+    private static BiConsumer<ServerPlayerEntity, TraderDefinition> traderMenuFunc = (ServerPlayerEntity player, TraderDefinition trades) -> {
         new TraderMenu(player, trades).open();
+    };
+
+    public static void setCustomShopScreen(BiConsumer<ServerPlayerEntity, TraderDefinition> func) {
+        TraderManager.traderMenuFunc = func;
+    }
+
+    public static void restoreDefaultShopScreen() {
+        TraderManager.traderMenuFunc = (ServerPlayerEntity player, TraderDefinition trades) -> {
+            new TraderMenu(player, trades).open();
+        };
+    }
+
+    public static void openTraderMenuFor(ServerPlayerEntity player, TraderDefinition trades) {
+        TraderManager.traderMenuFunc.accept(player, trades);
     }
 
     public static void openTraderPlacingMenuFor(ServerPlayerEntity player) {

@@ -1,15 +1,18 @@
 package dev.smto.servertraders;
 
+import dev.smto.servertraders.trading.TraderDefinition;
 import dev.smto.simpleconfig.SimpleConfig;
 import dev.smto.simpleconfig.api.ConfigAnnotations;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.LoggerFactory;
 import dev.smto.servertraders.command.CommandManager;
 import dev.smto.servertraders.trading.TraderManager;
 import java.nio.file.Path;
+import java.util.function.BiConsumer;
 
 public class ServerTraders implements ModInitializer {
     public static final String MOD_ID = "servertraders";
@@ -25,6 +28,14 @@ public class ServerTraders implements ModInitializer {
         TraderManager.reloadFromDisk();
         ServerTraders.LOGGER.info("ServerTraders v{} started!", ServerTraders.VERSION);
         ServerWorldEvents.LOAD.register((x, y) -> TraderManager.reloadFromDisk());
+    }
+
+    public static void setCustomShopScreen(BiConsumer<ServerPlayerEntity, TraderDefinition> func) {
+        TraderManager.setCustomShopScreen(func);
+    }
+
+    public static void restoreDefaultShopScreen() {
+        TraderManager.restoreDefaultShopScreen();
     }
 
     public static class Config {
