@@ -24,7 +24,7 @@ public class ServerTraders implements ModInitializer {
     @Override
     public void onInitialize() {
         ServerTraders.CONFIG_MANAGER.read();
-        CommandRegistrationCallback.EVENT.register((dispatcher, reg, environment) -> CommandManager.register(dispatcher, reg));
+        CommandRegistrationCallback.EVENT.register((dispatcher, reg, _) -> CommandManager.register(dispatcher, reg));
         // 26.1: itemstacks do not exist before world load, so we cant load traders yet
         //TraderManager.reloadFromDisk();
         ServerTraders.LOGGER.info("ServerTraders v{} started!", ServerTraders.VERSION);

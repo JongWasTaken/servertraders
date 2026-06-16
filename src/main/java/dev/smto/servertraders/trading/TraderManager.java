@@ -9,6 +9,7 @@ import eu.pb4.sgui.api.gui.SimpleGui;
 import dev.smto.servertraders.command.CommandManager;
 import dev.smto.servertraders.ServerTraders;
 import dev.smto.servertraders.util.CodecUtils;
+import net.minecraft.world.entity.EntityTypes;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -227,7 +228,7 @@ public class TraderManager {
     public static void placeTrader(Level world, Player player, @Nullable TraderDefinition trader) {
         if (trader == null) return;
         var villagerData = trader.villager();
-        var ent = new Villager(EntityType.VILLAGER, world);
+        var ent = new Villager(EntityTypes.VILLAGER, world);
         world.addFreshEntity(ent);
 
         ent.setVillagerData(villagerData.toVanilla());

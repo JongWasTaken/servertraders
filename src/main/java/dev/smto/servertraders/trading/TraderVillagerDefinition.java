@@ -2,6 +2,8 @@ package dev.smto.servertraders.trading;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -10,6 +12,8 @@ import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.npc.villager.VillagerData;
 import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.entity.npc.villager.VillagerType;
+
+import java.util.Objects;
 
 public record TraderVillagerDefinition(VillagerType type, VillagerProfession profession) {
     public static TraderVillagerDefinition DEFAULT = new TraderVillagerDefinition(
@@ -21,10 +25,13 @@ public record TraderVillagerDefinition(VillagerType type, VillagerProfession pro
             ).apply(instance, TraderVillagerDefinition::new));
     public VillagerData toVanilla() {
         return new VillagerData(
-                // Look at this silliness, I wonder what the mojang-approved way to do this is...
-                BuiltInRegistries.VILLAGER_TYPE.getOrThrow(ResourceKey.create(Registries.VILLAGER_TYPE, BuiltInRegistries.VILLAGER_TYPE.getKey(this.type))),
-                BuiltInRegistries.VILLAGER_PROFESSION.getOrThrow(ResourceKey.create(Registries.VILLAGER_PROFESSION, BuiltInRegistries.VILLAGER_PROFESSION.getKey(this.profession))),
+                TraderVillagerDefinition.getHolder(BuiltInRegistries.VILLAGER_TYPE, this.type),
+                TraderVillagerDefinition.getHolder(BuiltInRegistries.VILLAGER_PROFESSION, this.profession),
                 5
         );
+    }
+
+    private static <T> Holder.Reference<T> getHolder(Registry<T> reg, T value) {
+        return reg.getOrThrow(ResourceKey.create(reg.key(), Objects.requireNonNull(reg.getKey(value))));
     }
 }
