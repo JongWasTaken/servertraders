@@ -25,9 +25,10 @@ public class ServerTraders implements ModInitializer {
     public void onInitialize() {
         ServerTraders.CONFIG_MANAGER.read();
         CommandRegistrationCallback.EVENT.register((dispatcher, reg, environment) -> CommandManager.register(dispatcher, reg));
-        TraderManager.reloadFromDisk();
+        // 26.1: itemstacks do not exist before world load, so we cant load traders yet
+        //TraderManager.reloadFromDisk();
         ServerTraders.LOGGER.info("ServerTraders v{} started!", ServerTraders.VERSION);
-        ServerLevelEvents.LOAD.register((x, y) -> TraderManager.reloadFromDisk());
+        ServerLevelEvents.LOAD.register((_, _) -> TraderManager.reloadFromDisk());
     }
 
     public static void setCustomShopScreen(BiConsumer<ServerPlayer, TraderDefinition> func) {
