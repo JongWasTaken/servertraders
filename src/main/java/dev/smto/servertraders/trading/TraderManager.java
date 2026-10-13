@@ -237,7 +237,7 @@ public class TraderManager {
         ent.setXRot(player.getXRot());
         ent.setNoAi(true);
         ent.setNoGravity(true);
-        ent.setInvulnerable(true);
+        ent.setPermanentlyInvulnerable(true);
         ent.setDiscardFriction(true);
         ent.setPersistenceRequired();
         ent.setSilent(true);
